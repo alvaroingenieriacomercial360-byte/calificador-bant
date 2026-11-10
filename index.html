@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calificador de leads BANT · Impulsoee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #EDF1F4;
+  --surface: #FFFFFF;
+  --ink: #13202D;
+  --muted: #546372;
+  --line: #D2DAE2;
+  --brand: #26415F;
+  --chip: #F3F6F8;
+  --chip-on: #26415F;
+  --chip-on-ink: #FFFFFF;
+  --z-discard: #B23A2B;
+  --z-review: #9A6500;
+  --z-qualify: #2C7A4A;
+  --z-priority: #1D5FB5;
+  --z-ink: #FFFFFF;
+  --track: #E3E9EE;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0E151C;
+    --surface: #151F29;
+    --ink: #E4EAF0;
+    --muted: #98A7B5;
+    --line: #283746;
+    --brand: #9DC1E7;
+    --chip: #1B2733;
+    --chip-on: #9DC1E7;
+    --chip-on-ink: #0E151C;
+    --z-discard: #E5705F;
+    --z-review: #E9B24C;
+    --z-qualify: #62BE83;
+    --z-priority: #73ADF2;
+    --z-ink: #0E151C;
+    --track: #1F2B37;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0E151C;
+  --surface: #151F29;
+  --ink: #E4EAF0;
+  --muted: #98A7B5;
+  --line: #283746;
+  --brand: #9DC1E7;
+  --chip: #1B2733;
+  --chip-on: #9DC1E7;
+  --chip-on-ink: #0E151C;
+  --z-discard: #E5705F;
+  --z-review: #E9B24C;
+  --z-qualify: #62BE83;
+  --z-priority: #73ADF2;
+  --z-ink: #0E151C;
+  --track: #1F2B37;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Archivo", "Arial Narrow", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+img { max-width: 100%; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+
+header.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+header.top h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.05;
+  font-weight: 800;
+  font-stretch: 78%;
+  letter-spacing: -0.01em;
+  color: var(--brand);
+}
+header.top p { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
+.top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+button {
+  font: inherit;
+  font-weight: 650;
+  border-radius: 8px;
+  border: 1.5px solid var(--brand);
+  background: transparent;
+  color: var(--brand);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button.primary { background: var(--brand); color: var(--chip-on-ink); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .chip input:focus-visible + span {
+  outline: 3px solid var(--z-priority);
+  outline-offset: 2px;
+}
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 28px; align-items: start; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+/* Lead data */
+.lead { padding: 18px 20px; margin-bottom: 18px; }
+.lead h2 { margin: 0 0 12px; font-size: 18px; font-weight: 700; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; }
+.field label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.field input, .field select, textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 10px;
+}
+
+/* BANT segments */
+.segment { padding: 0; margin-bottom: 18px; overflow: hidden; }
+.seg-head { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.seg-letter {
+  font-size: 64px;
+  line-height: 0.8;
+  font-weight: 800;
+  font-stretch: 62%;
+  color: var(--brand);
+  width: 44px;
+  text-align: center;
+}
+.seg-title { margin: 0; font-size: 20px; font-weight: 750; }
+.seg-sub { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.seg-score { text-align: right; min-width: 110px; }
+.seg-score strong { font-size: 22px; font-weight: 800; font-stretch: 80%; font-variant-numeric: tabular-nums; }
+.seg-score span { color: var(--muted); font-size: 15px; }
+.seg-bar { height: 6px; background: var(--track); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.seg-bar i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .25s ease; }
+
+.q { padding: 16px 20px; border-bottom: 1px dashed var(--line); }
+.q:last-of-type { border-bottom: 0; }
+.q-text { margin: 0; font-weight: 650; }
+.q-hint { margin: 2px 0 10px; color: var(--muted); font-size: 15px; font-style: italic; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; }
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip span {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  cursor: pointer;
+  font-size: 15px;
+  user-select: none;
+}
+.chip input:checked + span { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on); font-weight: 650; }
+.notes { padding: 14px 20px 18px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)); }
+.notes label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+.notes textarea { min-height: 64px; resize: vertical; background: var(--surface); }
+
+/* Result */
+aside.result { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+.res { padding: 20px; }
+.res h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.res .progress { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+.score-row { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 4px; }
+.score-big { font-size: 88px; line-height: 0.9; font-weight: 800; font-stretch: 70%; font-variant-numeric: tabular-nums; color: var(--ink); }
+.score-of { font-size: 22px; color: var(--muted); font-weight: 600; }
+.score-exact { margin-left: auto; color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* Instrument scale (the slider) */
+.scale { position: relative; margin: 26px 0 8px; padding-top: 18px; }
+.scale-track { display: flex; height: 16px; border-radius: 4px; overflow: hidden; }
+.scale-track div { height: 100%; }
+.z-discard { background: var(--z-discard); width: 38.89%; }
+.z-review { background: var(--z-review); width: 22.22%; }
+.z-qualify { background: var(--z-qualify); width: 33.33%; }
+.z-priority { background: var(--z-priority); width: 5.56%; }
+.scale.empty .scale-track { opacity: .35; }
+.needle {
+  position: absolute;
+  top: 0;
+  left: 0%;
+  transform: translateX(-50%);
+  transition: left .35s cubic-bezier(.3, .7, .3, 1);
+}
+.needle::before {
+  content: "";
+  display: block;
+  width: 0; height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 14px solid var(--ink);
+}
+.needle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 3px;
+  height: 22px;
+  transform: translateX(-50%);
+  background: var(--ink);
+}
+.scale.empty .needle { display: none; }
+.ticks { display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.zone-labels { display: flex; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.zone-labels span:nth-child(1) { width: 38.89%; }
+.zone-labels span:nth-child(2) { width: 22.22%; }
+.zone-labels span:nth-child(3) { width: 33.33%; }
+.zone-labels span:nth-child(4) { width: 5.56%; text-align: right; }
+
+.verdict { margin-top: 18px; border-radius: 8px; padding: 14px 16px; background: var(--track); color: var(--ink); }
+.verdict .tag { font-size: 22px; font-weight: 800; font-stretch: 85%; margin: 0; }
+.verdict p.action { margin: 4px 0 0; }
+.verdict[data-zone="discard"] { background: var(--z-discard); color: var(--z-ink); }
+.verdict[data-zone="review"] { background: var(--z-review); color: var(--z-ink); }
+.verdict[data-zone="qualify"] { background: var(--z-qualify); color: var(--z-ink); }
+.verdict[data-zone="priority"] { background: var(--z-priority); color: var(--z-ink); }
+.prelim { display: inline-block; margin-top: 8px; font-size: 13px; padding: 2px 8px; border-radius: 4px; border: 1px solid currentColor; }
+
+.reasons, .improve { margin: 16px 0 0; }
+.reasons h3, .improve h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.reasons ul, .improve ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 15px; }
+.reasons li, .improve li { margin-bottom: 4px; }
+
+.bant-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.bant-mini div { border: 1px solid var(--line); border-radius: 6px; padding: 8px 6px; text-align: center; }
+.bant-mini b { display: block; font-size: 22px; font-weight: 800; font-stretch: 70%; color: var(--brand); line-height: 1; }
+.bant-mini small { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.res-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.res-actions button { flex: 1; }
+.status { min-height: 1.4em; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+details.summary-box { margin-top: 10px; }
+details.summary-box summary { cursor: pointer; color: var(--brand); font-weight: 600; font-size: 15px; }
+details.summary-box textarea { margin-top: 8px; min-height: 180px; font-size: 13px; line-height: 1.4; }
+
+details.method { margin-top: 18px; padding: 14px 20px; }
+details.method summary { cursor: pointer; font-weight: 700; }
+.method-table-wrap { overflow-x: auto; margin-top: 10px; }
+.method table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 520px; }
+.method th, .method td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.method th { color: var(--muted); font-weight: 600; }
+
+.save-steps { list-style: none; margin: 10px 0 0; padding: 0; font-size: 14px; }
+.save-steps li { padding: 6px 0 6px 22px; position: relative; color: var(--ink); }
+.save-steps li::before { content: ""; position: absolute; left: 4px; top: 12px; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.save-steps li[data-s="ok"]::before { background: var(--z-qualify); }
+.save-steps li[data-s="warn"]::before { background: var(--z-review); }
+.save-steps li[data-s="err"]::before { background: var(--z-discard); }
+.save-steps a { color: var(--brand); font-weight: 650; }
+button:disabled { opacity: .55; cursor: progress; }
+
+.leads { margin-top: 28px; padding: 20px; }
+.leads-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.leads h2 { margin: 0; font-size: 22px; font-weight: 800; font-stretch: 85%; color: var(--brand); }
+.leads-sub { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.counts { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.count { border-radius: 6px; padding: 4px 10px; font-size: 14px; font-weight: 650; color: var(--z-ink); }
+.count[data-zone="priority"] { background: var(--z-priority); }
+.count[data-zone="qualify"] { background: var(--z-qualify); }
+.count[data-zone="review"] { background: var(--z-review); }
+.count[data-zone="discard"] { background: var(--z-discard); }
+.table-wrap { overflow-x: auto; }
+.leads-table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 15px; }
+.leads-table th, .leads-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.leads-table th { color: var(--muted); font-weight: 600; font-size: 14px; }
+.leads-table td.num { font-weight: 800; font-stretch: 80%; font-variant-numeric: tabular-nums; }
+.leads-table a { color: var(--brand); font-weight: 600; }
+.pill { display: inline-block; border-radius: 4px; padding: 1px 8px; font-size: 13px; font-weight: 650; color: var(--z-ink); }
+.pill[data-zone="priority"] { background: var(--z-priority); }
+.pill[data-zone="qualify"] { background: var(--z-qualify); }
+.pill[data-zone="review"] { background: var(--z-review); }
+.pill[data-zone="discard"] { background: var(--z-discard); }
+.empty-row { color: var(--muted); padding: 18px 10px; }
+
+.access { padding: 16px 20px; margin-bottom: 18px; }
+.access h2 { margin: 0 0 10px; font-size: 18px; font-weight: 700; }
+.access .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; }
+.access-note { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.ia { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.ia h3 { margin: 0 0 6px; font-size: 16px; font-weight: 750; }
+.ia p { margin: 0 0 8px; font-size: 15px; }
+.ia ul { margin: 0 0 8px; padding-left: 18px; font-size: 15px; }
+.ia-label { display: block; font-size: 14px; color: var(--muted); margin: 6px 0 4px; }
+.ia textarea { min-height: 96px; margin-bottom: 8px; }
+.leads-actions { display: flex; gap: 12px; align-items: center; }
+.leads-actions a { color: var(--brand); font-weight: 650; }
+
+/* Mobile bottom bar */
+.mobile-bar { display: none; }
+
+@media (max-width: 960px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  aside.result { position: static; }
+  .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-bar {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 10px 16px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    align-items: center;
+    gap: 12px;
+    z-index: 20;
+  }
+  .mobile-bar .mb-score { font-size: 34px; font-weight: 800; font-stretch: 70%; line-height: 1; min-width: 34px; font-variant-numeric: tabular-nums; }
+  .mobile-bar .mb-tag { flex: 1; font-weight: 700; }
+  .mobile-bar a { color: var(--brand); font-weight: 650; text-decoration: none; }
+  body { padding-bottom: 80px; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 20px 14px 32px; }
+  .fields { grid-template-columns: minmax(0, 1fr); }
+  .seg-head { grid-template-columns: auto 1fr; }
+  .seg-score { grid-column: 1 / -1; text-align: left; }
+  .seg-letter { font-size: 52px; }
+  .score-big { font-size: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .needle, .seg-bar i { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Calificador de leads BANT</h1>
+      <p>Impulsoee, de M&amp;M Tech House. Marca lo que te respondió el lead en cada bloque y la herramienta calcula su calificación de 1 a 10 y te dice qué hacer con él.</p>
+    </div>
+    <div class="top-actions">
+      <button type="button" id="btnReset">Nuevo lead</button>
+    </div>
+  </header>
+
+  <section class="panel access" aria-labelledby="accTitle">
+    <h2 id="accTitle">Tu acceso</h2>
+    <div class="fields">
+      <div class="field"><label for="a_setter">Calificado por</label><input id="a_setter" autocomplete="name" placeholder="Tu nombre"></div>
+      <div class="field"><label for="a_pin">Clave de la herramienta</label><input id="a_pin" type="password" autocomplete="current-password"></div>
+    </div>
+    <p class="access-note">Se guardan solo en este navegador. La clave te la da el administrador.</p>
+  </section>
+
+  <div class="grid">
+    <main>
+      <section class="panel lead" aria-labelledby="leadTitle">
+        <h2 id="leadTitle">Datos del lead</h2>
+        <div class="fields">
+          <div class="field"><label for="f_nombre">Nombre</label><input id="f_nombre" data-field="nombre" autocomplete="off"></div>
+          <div class="field"><label for="f_empresa">Empresa</label><input id="f_empresa" data-field="empresa" autocomplete="off"></div>
+          <div class="field"><label for="f_cargo">Cargo</label><input id="f_cargo" data-field="cargo" autocomplete="off"></div>
+          <div class="field"><label for="f_whatsapp">WhatsApp</label><input id="f_whatsapp" data-field="whatsapp" inputmode="tel" autocomplete="off"></div>
+          <div class="field"><label for="f_origen">Origen</label>
+            <select id="f_origen" data-field="origen">
+              <option value="">Selecciona</option>
+              <option>Formulario de Meta</option>
+              <option>Landing</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="field"><label for="f_codigo">Código del anuncio</label><input id="f_codigo" data-field="codigo" placeholder="Ej.: ME-EXCEL-FORM" autocomplete="off"></div>
+        </div>
+      </section>
+
+      <div id="segments"></div>
+
+      <details class="panel method">
+        <summary>Cómo se calcula la calificación</summary>
+        <p>Cada bloque de BANT vale hasta 2,5 puntos y la suma da la calificación de 1 a 10, redondeada. Algunas respuestas ponen un tope, porque sin ellas no tiene sentido agendar la demo.</p>
+        <div class="method-table-wrap"><table id="methodTable"></table></div>
+      </details>
+    </main>
+
+    <aside class="result" id="resultado" aria-labelledby="resTitle">
+      <div class="panel res">
+        <h2 id="resTitle">Calificación del lead</h2>
+        <p class="progress" id="progress">0 de 9 preguntas respondidas</p>
+
+        <div class="score-row">
+          <span class="score-big" id="scoreBig">–</span>
+          <span class="score-of">/ 10</span>
+          <span class="score-exact" id="scoreExact"></span>
+        </div>
+
+        <div class="scale empty" id="scale" role="meter" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1" aria-label="Calificación del lead de 1 a 10">
+          <div class="needle" id="needle"></div>
+          <div class="scale-track"><div class="z-discard"></div><div class="z-review"></div><div class="z-qualify"></div><div class="z-priority"></div></div>
+          <div class="ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+          <div class="zone-labels"><span>Desechable</span><span>En revisión</span><span>Calificable</span><span>★</span></div>
+        </div>
+
+        <div class="verdict" id="verdict" aria-live="polite">
+          <p class="tag" id="vTag">Sin calificar</p>
+          <p class="action" id="vAction">Marca las respuestas del lead en los cuatro bloques.</p>
+          <span class="prelim" id="vPrelim" hidden>Preliminar: faltan respuestas</span>
+        </div>
+
+        <div class="bant-mini" id="bantMini"></div>
+
+        <div class="reasons" id="reasonsBox" hidden>
+          <h3>Topes aplicados</h3>
+          <ul id="reasons"></ul>
+        </div>
+
+        <div class="improve" id="improveBox" hidden>
+          <h3>Para completar o mejorar la calificación</h3>
+          <ul id="improve"></ul>
+        </div>
+
+        <div class="res-actions">
+          <button type="button" class="primary" id="btnSave">Guardar lead y crear informe en Drive</button>
+        </div>
+        <ul class="save-steps" id="saveSteps" hidden>
+          <li id="stepIa"></li>
+          <li id="stepDrive"></li>
+        </ul>
+        <div class="ia" id="iaBox" hidden>
+          <h3>Análisis de la IA</h3>
+          <p id="iaResumen"></p>
+          <ul id="iaRiesgos"></ul>
+          <p><b>Siguiente paso:</b> <span id="iaPaso"></span></p>
+          <label for="iaMsg" class="ia-label">Mensaje sugerido para WhatsApp</label>
+          <textarea id="iaMsg" readonly></textarea>
+          <button type="button" id="btnCopyMsg">Copiar mensaje</button>
+        </div>
+        <div class="res-actions">
+          <button type="button" id="btnCopy">Copiar resumen</button>
+        </div>
+        <p class="status" id="status" role="status"></p>
+        <details class="summary-box">
+          <summary>Ver resumen para el closer y la hoja de seguimiento</summary>
+          <textarea id="summary" readonly aria-label="Resumen del lead"></textarea>
+        </details>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel leads" id="leads" aria-labelledby="leadsTitle">
+    <div class="leads-head">
+      <div>
+        <h2 id="leadsTitle">Leads guardados</h2>
+        <p class="leads-sub" id="leadsSub">Cada lead guardado queda en la hoja de leads de Google Drive, con el enlace a su informe.</p>
+      </div>
+      <div class="leads-actions">
+        <a id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Abrir hoja de leads</a>
+        <button type="button" id="btnRefresh">Actualizar</button>
+      </div>
+    </div>
+    <div class="counts" id="counts"></div>
+    <div class="table-wrap">
+      <table class="leads-table">
+        <thead><tr><th>Fecha</th><th>Lead</th><th>Empresa</th><th>Nota</th><th>Veredicto</th><th>Informe</th></tr></thead>
+        <tbody id="leadsBody"><tr><td colspan="6" class="empty-row" id="leadsEmpty">Cargando la base de leads…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="mobile-bar" aria-hidden="true">
+  <span class="mb-score" id="mbScore">–</span>
+  <span class="mb-tag" id="mbTag">Sin calificar</span>
+  <a href="#resultado">Ver resultado</a>
+</div>
+
+<script>
+const SEGMENTS = [
+  { key: 'B', title: 'Presupuesto', sub: '¿Puede invertir en la solución?',
+    questions: [
+      { id: 'b1', text: '¿Tienen presupuesto para mejorar o digitalizar la producción?',
+        hint: 'Pregunta sugerida: “¿Tienen un presupuesto asignado para mejora o digitalización este año o el próximo?”',
+        options: [ { v: 'asignado', l: 'Sí, ya está asignado', p: 1.5 }, { v: 'armando', l: 'Lo están armando', p: 1.0 },
+                   { v: 'gestionable', l: 'No, pero lo pueden gestionar', p: 0.5 }, { v: 'no', l: 'No hay presupuesto', p: 0 } ] },
+      { id: 'b2', text: '¿Cuántos empleados tiene la empresa?',
+        hint: 'Si lo marcó en el formulario, toma ese dato.',
+        options: [ { v: 'ideal', l: '51 a 1.000', p: 1.0 }, { v: 'grande', l: 'Más de 1.000', p: 0.7 },
+                   { v: 'mediana', l: '20 a 50', p: 0.4 }, { v: 'micro', l: 'Menos de 20', p: 0 } ] }
+    ] },
+  { key: 'A', title: 'Autoridad', sub: '¿Decide la compra o llega a quien decide?',
+    questions: [
+      { id: 'a1', text: '¿Qué papel tiene en la decisión de compra?',
+        hint: 'Pregunta sugerida: “Además de ti, ¿quién participa en la decisión?”',
+        options: [ { v: 'decide', l: 'Decide', p: 1.5 }, { v: 'recomienda', l: 'Recomienda o influye', p: 1.0 }, { v: 'informa', l: 'Solo se informa', p: 0.3 } ] },
+      { id: 'a2', text: '¿Quien decide estará en la demo?',
+        hint: 'Si el lead es quien decide, marca “Sí, confirmado”.',
+        options: [ { v: 'si', l: 'Sí, confirmado', p: 1.0 }, { v: 'pendiente', l: 'Por confirmar', p: 0.5 }, { v: 'no', l: 'No', p: 0 } ] }
+    ] },
+  { key: 'N', title: 'Necesidad', sub: '¿Tiene el problema que resuelve Impulsoee y puede usarlo?',
+    questions: [
+      { id: 'n1', text: '¿Qué tan claro y urgente es su problema?',
+        hint: 'Pregunta sugerida: “¿Qué pasa hoy cuando se para una máquina? ¿Cómo se enteran?”',
+        options: [ { v: 'urgente', l: 'Claro y prioritario', p: 1.0 }, { v: 'sinurgencia', l: 'Lo reconoce, sin urgencia', p: 0.5 }, { v: 'ninguno', l: 'No identifica un problema', p: 0 } ] },
+      { id: 'n2', text: '¿Sus líneas automatizadas tienen PLC?',
+        hint: 'Impulsoee toma los datos del PLC. Sin PLC no se puede implementar.',
+        options: [ { v: 'si', l: 'Sí', p: 1.0 }, { v: 'nosabe', l: 'No sabe', p: 0.5 }, { v: 'no', l: 'No', p: 0 } ] },
+      { id: 'n3', text: '¿Cómo miden hoy la eficiencia y los paros?',
+        hint: 'Pregunta sugerida: “¿Dónde registran hoy los paros y cómo arman el reporte?”',
+        options: [ { v: 'manual', l: 'A mano, en papel o Excel', p: 0.5 }, { v: 'parcial', l: 'Con un sistema parcial', p: 0.3 }, { v: 'software', l: 'Ya tienen un software de OEE', p: 0 } ] }
+    ] },
+  { key: 'T', title: 'Tiempo', sub: '¿Para cuándo quiere resolverlo?',
+    questions: [
+      { id: 't1', text: '¿Para cuándo quieren resolverlo?',
+        hint: 'Pregunta sugerida: “¿Para cuándo te gustaría tener esto resuelto?”',
+        options: [ { v: 'tres', l: 'En los próximos 3 meses', p: 1.5 }, { v: 'seis', l: 'En 3 a 6 meses', p: 1.0 },
+                   { v: 'mas', l: 'En más de 6 meses', p: 0.4 }, { v: 'investiga', l: 'Solo está investigando', p: 0 } ] },
+      { id: 't2', text: '¿Acepta agendar la demo?',
+        hint: 'Lo ideal es agendar en los próximos 2 o 3 días hábiles.',
+        options: [ { v: 'pronto', l: 'Sí, en los próximos 3 días hábiles', p: 1.0 }, { v: 'luego', l: 'Sí, más adelante', p: 0.6 }, { v: 'no', l: 'Todavía no', p: 0 } ] }
+    ] }
+];
+const SEG_MAX = 2.5;
+const TOTAL_Q = SEGMENTS.reduce((n, s) => n + s.questions.length, 0);
+
+const CAPS = [
+  { when: a => a.n2 === 'no', cap: 4, text: 'Sin líneas con PLC, Impulsoee no se puede implementar: tope de 4.' },
+  { when: a => a.b2 === 'micro', cap: 4, text: 'La empresa tiene menos de 20 empleados, fuera del cliente ideal: tope de 4.' },
+  { when: a => a.b2 === 'mediana', cap: 6, text: 'La empresa tiene entre 20 y 50 empleados, por debajo del cliente ideal: tope de 6.' },
+  { when: a => a.a2 === 'no' && a.a1 !== 'decide', cap: 6, text: 'Quien decide no estará en la demo: consigue que participe antes de agendar. Tope de 6.' },
+  { when: a => a.t2 === 'no', cap: 6, text: 'Todavía no acepta la demo: déjalo en seguimiento. Tope de 6.' }
+];
+
+const ZONES = {
+  priority: { tag: 'Alta prioridad', action: 'Agenda la demo con el closer y el área técnica lo antes posible. Va primero en la agenda.' },
+  qualify:  { tag: 'Calificable', action: 'Agenda la demo con el closer y el área técnica.' },
+  review:   { tag: 'En revisión', action: 'Pásalo a revisión y estudio. Completa lo que falta y haz seguimiento antes de agendar.' },
+  discard:  { tag: 'Desechable', action: 'No agendes. Cierra la conversación con un mensaje cordial y registra el motivo.' }
+};
+
+const state = { answers: {}, notes: {}, fields: {} };
+const STORE_KEY = 'impulsoee-bant-borrador';
+
+function fmt(n) { return n.toFixed(1).replace('.', ','); }
+function zoneFor(r) { return r >= 10 ? 'priority' : r >= 7 ? 'qualify' : r >= 5 ? 'review' : 'discard'; }
+function optionOf(q, v) { return q.options.find(o => o.v === v); }
+
+function renderSegments() {
+  const host = document.getElementById('segments');
+  host.innerHTML = '';
+  SEGMENTS.forEach(seg => {
+    const sec = document.createElement('section');
+    sec.className = 'panel segment';
+    sec.setAttribute('aria-labelledby', 'seg-' + seg.key);
+    let html = `<div class="seg-head">
+      <div class="seg-letter" aria-hidden="true">${seg.key}</div>
+      <div><h2 class="seg-title" id="seg-${seg.key}">${seg.title}</h2><p class="seg-sub">${seg.sub}</p></div>
+      <div class="seg-score"><strong id="ss-${seg.key}">0,0</strong> <span>/ 2,5</span><div class="seg-bar"><i id="sb-${seg.key}"></i></div></div>
+    </div>`;
+    seg.questions.forEach(q => {
+      html += `<fieldset class="q" style="border:0;margin:0;min-width:0">
+        <legend class="q-text">${q.text}</legend>
+        <p class="q-hint">${q.hint}</p>
+        <div class="chips">` +
+        q.options.map(o => `<label class="chip"><input type="radio" name="${q.id}" value="${o.v}"><span>${o.l}</span></label>`).join('') +
+        `</div></fieldset>`;
+    });
+    html += `<div class="notes"><label for="notes-${seg.key}">Notas del setter sobre ${seg.title.toLowerCase()}</label>
+      <textarea id="notes-${seg.key}" data-notes="${seg.key}" placeholder="Lo que dijo el lead o lo que consideras importante"></textarea></div>`;
+    sec.innerHTML = html;
+    host.appendChild(sec);
+  });
+}
+
+function renderMethod() {
+  const t = document.getElementById('methodTable');
+  let html = '<thead><tr><th>Bloque</th><th>Pregunta</th><th>Respuestas y puntos</th></tr></thead><tbody>';
+  SEGMENTS.forEach(seg => seg.questions.forEach((q, i) => {
+    html += `<tr><td>${i === 0 ? seg.key + ' · ' + seg.title : ''}</td><td>${q.text}</td><td>${q.options.map(o => o.l + ': ' + fmt(o.p)).join('<br>')}</td></tr>`;
+  }));
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+
+function compute() {
+  const a = state.answers;
+  let total = 0, answered = 0;
+  const segScores = {};
+  SEGMENTS.forEach(seg => {
+    let s = 0;
+    seg.questions.forEach(q => {
+      if (a[q.id]) { answered++; s += optionOf(q, a[q.id]).p; }
+    });
+    segScores[seg.key] = s;
+    total += s;
+  });
+  const caps = CAPS.filter(c => c.when(a));
+  let capped = total;
+  caps.forEach(c => { capped = Math.min(capped, c.cap); });
+  const rounded = answered ? Math.min(10, Math.max(1, Math.round(capped))) : null;
+  return { total, capped, rounded, answered, segScores, caps };
+}
+
+function improvements(r) {
+  const a = state.answers, list = [];
+  SEGMENTS.forEach(seg => seg.questions.forEach(q => {
+    if (!a[q.id]) list.push({ gap: 99, text: `Falta: ${q.text}` });
+    else {
+      const best = Math.max(...q.options.map(o => o.p));
+      const got = optionOf(q, a[q.id]).p;
+      if (got < best) list.push({ gap: best - got, text: `${seg.key}: ${q.text} (hoy: “${optionOf(q, a[q.id]).l}”)` });
+    }
+  }));
+  list.sort((x, y) => y.gap - x.gap);
+  return list.slice(0, 4).map(i => i.text);
+}
+
+function summaryText(r) {
+  const f = state.fields, a = state.answers;
+  const z = r.rounded ? ZONES[zoneFor(r.rounded)] : null;
+  const lines = [];
+  lines.push(`Lead: ${f.nombre || '(sin nombre)'}${f.cargo ? ', ' + f.cargo : ''}${f.empresa ? ', ' + f.empresa : ''}`);
+  if (f.whatsapp) lines.push(`WhatsApp: ${f.whatsapp}`);
+  if (f.origen || f.codigo) lines.push(`Origen: ${f.origen || '-'}${f.codigo ? ' (código ' + f.codigo + ')' : ''}`);
+  lines.push(`Calificación BANT: ${r.rounded ?? '-'}/10 (${fmt(r.capped)})${z ? ' – ' + z.tag : ''}${r.answered < TOTAL_Q ? ' – preliminar' : ''}`);
+  lines.push(`B ${fmt(r.segScores.B)} | A ${fmt(r.segScores.A)} | N ${fmt(r.segScores.N)} | T ${fmt(r.segScores.T)} (cada uno sobre 2,5)`);
+  if (z) lines.push(`Acción: ${z.action}`);
+  r.caps.forEach(c => lines.push(`Tope: ${c.text}`));
+  SEGMENTS.forEach(seg => {
+    lines.push('');
+    lines.push(`${seg.key} – ${seg.title}`);
+    seg.questions.forEach(q => lines.push(`- ${q.text} ${a[q.id] ? optionOf(q, a[q.id]).l : 'Sin respuesta'}`));
+    if (state.notes[seg.key]) lines.push(`  Notas: ${state.notes[seg.key]}`);
+  });
+  return lines.join('\n');
+}
+
+function render() {
+  const r = compute();
+  document.getElementById('progress').textContent = `${r.answered} de ${TOTAL_Q} preguntas respondidas`;
+  SEGMENTS.forEach(seg => {
+    document.getElementById('ss-' + seg.key).textContent = fmt(r.segScores[seg.key]);
+    document.getElementById('sb-' + seg.key).style.width = (r.segScores[seg.key] / SEG_MAX * 100) + '%';
+  });
+
+  const scale = document.getElementById('scale');
+  const verdict = document.getElementById('verdict');
+  const prelim = document.getElementById('vPrelim');
+  if (!r.answered) {
+    document.getElementById('scoreBig').textContent = '–';
+    document.getElementById('scoreExact').textContent = '';
+    scale.classList.add('empty');
+    verdict.removeAttribute('data-zone');
+    document.getElementById('vTag').textContent = 'Sin calificar';
+    document.getElementById('vAction').textContent = 'Marca las respuestas del lead en los cuatro bloques.';
+    prelim.hidden = true;
+    document.getElementById('mbScore').textContent = '–';
+    document.getElementById('mbTag').textContent = 'Sin calificar';
+  } else {
+    const zone = zoneFor(r.rounded);
+    document.getElementById('scoreBig').textContent = r.rounded;
+    document.getElementById('scoreExact').textContent = `Puntaje exacto: ${fmt(r.capped)}`;
+    scale.classList.remove('empty');
+    const pos = (Math.min(10, Math.max(1, r.capped)) - 1) / 9 * 100;
+    document.getElementById('needle').style.left = pos + '%';
+    scale.setAttribute('aria-valuenow', String(r.rounded));
+    verdict.setAttribute('data-zone', zone);
+    document.getElementById('vTag').textContent = ZONES[zone].tag;
+    document.getElementById('vAction').textContent = ZONES[zone].action;
+    prelim.hidden = r.answered >= TOTAL_Q;
+    document.getElementById('mbScore').textContent = r.rounded;
+    document.getElementById('mbTag').textContent = ZONES[zone].tag + (r.answered < TOTAL_Q ? ' (preliminar)' : '');
+  }
+
+  document.getElementById('bantMini').innerHTML = SEGMENTS.map(s =>
+    `<div><b>${s.key}</b><small>${fmt(r.segScores[s.key])} / 2,5</small></div>`).join('');
+
+  const rb = document.getElementById('reasonsBox');
+  rb.hidden = !r.caps.length;
+  document.getElementById('reasons').innerHTML = r.caps.map(c => `<li>${c.text}</li>`).join('');
+
+  const imp = r.answered ? improvements(r) : [];
+  const ib = document.getElementById('improveBox');
+  ib.hidden = !imp.length;
+  document.getElementById('improve').innerHTML = imp.map(t => `<li>${t}</li>`).join('');
+
+  document.getElementById('summary').value = summaryText(r);
+  save();
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    const valid = {};
+    SEGMENTS.forEach(seg => seg.questions.forEach(q => { valid[q.id] = q.options.map(o => o.v); }));
+    Object.entries(s.answers || {}).forEach(([k, v]) => { if (valid[k] && valid[k].includes(v)) state.answers[k] = v; });
+    Object.assign(state.notes, s.notes || {});
+    Object.assign(state.fields, s.fields || {});
+  } catch (e) {}
+}
+function applyStateToForm() {
+  document.querySelectorAll('input[type=radio]').forEach(el => { el.checked = state.answers[el.name] === el.value; });
+  document.querySelectorAll('[data-notes]').forEach(el => { el.value = state.notes[el.dataset.notes] || ''; });
+  document.querySelectorAll('[data-field]').forEach(el => { el.value = state.fields[el.dataset.field] || ''; });
+}
+
+function bind() {
+  document.addEventListener('change', e => {
+    const el = e.target;
+    if (el.type === 'radio') { state.answers[el.name] = el.value; render(); }
+    if (el.dataset && el.dataset.field) { state.fields[el.dataset.field] = el.value; render(); }
+  });
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset && el.dataset.notes) { state.notes[el.dataset.notes] = el.value; render(); }
+    if (el.dataset && el.dataset.field && el.tagName === 'INPUT') { state.fields[el.dataset.field] = el.value; render(); }
+  });
+
+  let resetArmed = null;
+  const btnReset = document.getElementById('btnReset');
+  btnReset.addEventListener('click', () => {
+    if (!resetArmed) {
+      btnReset.textContent = 'Confirmar: borrar todo';
+      resetArmed = setTimeout(() => { btnReset.textContent = 'Nuevo lead'; resetArmed = null; }, 3500);
+      return;
+    }
+    clearTimeout(resetArmed); resetArmed = null;
+    btnReset.textContent = 'Nuevo lead';
+    state.answers = {}; state.notes = {}; state.fields = {};
+    applyStateToForm();
+    render();
+    document.getElementById('iaBox').hidden = true;
+    document.getElementById('saveSteps').hidden = true;
+    document.getElementById('status').textContent = 'Listo para calificar un nuevo lead.';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.getElementById('btnCopy').addEventListener('click', async () => {
+    const text = document.getElementById('summary').value;
+    const status = document.getElementById('status');
+    try {
+      await navigator.clipboard.writeText(text);
+      status.textContent = 'Resumen copiado. Pégalo en la hoja de seguimiento o envíaselo al closer.';
+    } catch (e) {
+      const box = document.querySelector('details.summary-box');
+      box.open = true;
+      const ta = document.getElementById('summary');
+      ta.focus(); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) {}
+      status.textContent = ok ? 'Resumen copiado. Pégalo en la hoja de seguimiento o envíaselo al closer.'
+                              : 'No se pudo copiar automáticamente: el resumen quedó seleccionado, cópialo con Ctrl+C.';
+    }
+  });
+}
+
+
+/* ---------- Guardado: IA (Claude API) + Google Drive vía funciones de Netlify ---------- */
+const ACCESS_KEY = 'impulsoee-bant-acceso';
+const access = { setter: '', pin: '' };
+let leadsList = [];
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function fechaLarga(d) { return d.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+function zoneFromTag(tag) { return Object.keys(ZONES).find(k => ZONES[k].tag === tag) || ''; }
+
+function loadAccess() {
+  try { Object.assign(access, JSON.parse(localStorage.getItem(ACCESS_KEY) || '{}')); } catch (e) {}
+  document.getElementById('a_setter').value = access.setter || '';
+  document.getElementById('a_pin').value = access.pin || '';
+}
+function saveAccess() {
+  access.setter = document.getElementById('a_setter').value.trim();
+  access.pin = document.getElementById('a_pin').value;
+  try { localStorage.setItem(ACCESS_KEY, JSON.stringify(access)); } catch (e) {}
+}
+
+async function api(path, options = {}) {
+  try {
+    const res = await fetch('/.netlify/functions/' + path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', 'x-tool-pin': access.pin || '' }
+    });
+    let data;
+    try { data = await res.json(); } catch (e) { data = { ok: false, error: `El servidor respondió ${res.status} sin datos válidos.` }; }
+    data.status = res.status;
+    return data;
+  } catch (e) {
+    return { ok: false, status: 0, error: 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.' };
+  }
+}
+
+function buildLead(r) {
+  const a = state.answers, now = new Date(), zone = zoneFor(r.rounded);
+  return {
+    createdAt: now.toISOString(),
+    fecha: fechaLarga(now),
+    fechaCorta: now.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    setter: access.setter || '',
+    nombre: (state.fields.nombre || '').trim(), empresa: state.fields.empresa || '', cargo: state.fields.cargo || '',
+    whatsapp: state.fields.whatsapp || '', origen: state.fields.origen || '', codigo: state.fields.codigo || '',
+    rating: r.rounded, score: Math.round(r.capped * 10) / 10, zone,
+    veredicto: ZONES[zone].tag, accion: ZONES[zone].action,
+    segScores: r.segScores,
+    bant: SEGMENTS.map(seg => ({
+      bloque: `${seg.key} · ${seg.title}`,
+      puntos: `${fmt(r.segScores[seg.key])} / 2,5`,
+      respuestas: seg.questions.map(q => `${q.text} ${a[q.id] ? optionOf(q, a[q.id]).l : 'Sin respuesta'}`)
+    })),
+    caps: r.caps.map(c => c.text),
+    notes: SEGMENTS.filter(s => state.notes[s.key]).map(s => `${s.title}: ${state.notes[s.key]}`),
+    improve: improvements(r)
+  };
+}
+
+function setStep(id, st, html) {
+  const li = document.getElementById(id);
+  li.dataset.s = st;
+  li.innerHTML = html;
+  document.getElementById('saveSteps').hidden = false;
+}
+
+function showIa(ia) {
+  document.getElementById('iaResumen').textContent = ia.resumen || '';
+  document.getElementById('iaRiesgos').innerHTML = (ia.riesgos || []).map(x => `<li>${esc(x)}</li>`).join('');
+  document.getElementById('iaPaso').textContent = ia.siguiente_paso || '';
+  document.getElementById('iaMsg').value = ia.mensaje_whatsapp || '';
+  document.getElementById('iaBox').hidden = false;
+}
+
+async function saveLead() {
+  const status = document.getElementById('status');
+  const r = compute();
+  saveAccess();
+  if (!(state.fields.nombre || '').trim()) { status.textContent = 'Escribe al menos el nombre del lead antes de guardar.'; document.getElementById('f_nombre').focus(); return; }
+  if (r.answered < TOTAL_Q) { status.textContent = `Faltan ${TOTAL_Q - r.answered} preguntas. Responde las 9 antes de guardar el informe.`; return; }
+
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'Guardando…'; status.textContent = '';
+  document.getElementById('iaBox').hidden = true;
+  const lead = buildLead(r);
+
+  setStep('stepIa', 'warn', 'Analizando el lead con la IA…');
+  setStep('stepDrive', 'warn', 'En espera…');
+  let ia = null;
+  const iaRes = await api('analizar-lead', { method: 'POST', body: JSON.stringify({ lead }) });
+  if (iaRes.status === 401) {
+    setStep('stepIa', 'err', 'La clave de la herramienta no es correcta. Revísala en “Tu acceso”.');
+    setStep('stepDrive', 'err', 'No se guardó el lead.');
+    btn.disabled = false; btn.textContent = 'Guardar lead y crear informe en Drive';
+    return;
+  }
+  if (iaRes.ok) { ia = iaRes.ia; showIa(ia); setStep('stepIa', 'ok', 'Análisis de la IA listo.'); }
+  else setStep('stepIa', 'warn', esc(iaRes.error || 'La IA no respondió.') + ' El informe se guarda sin análisis.');
+
+  setStep('stepDrive', 'warn', 'Creando el informe en Google Drive…');
+  const g = await api('guardar-lead', { method: 'POST', body: JSON.stringify({ lead, ia }) });
+  if (g.ok) {
+    setStep('stepDrive', 'ok', `Informe creado: <a href="${esc(g.docUrl)}" target="_blank" rel="noopener">abrir en Drive</a>. El lead quedó en la <a href="${esc(g.sheetUrl)}" target="_blank" rel="noopener">hoja de leads</a>.`);
+    loadLeads();
+  } else {
+    setStep('stepDrive', 'err', esc(g.error || 'No se pudo crear el informe en Drive.'));
+  }
+  btn.disabled = false; btn.textContent = 'Guardar lead y crear informe en Drive';
+}
+
+function renderLeads() {
+  const body = document.getElementById('leadsBody');
+  const counts = { priority: 0, qualify: 0, review: 0, discard: 0 };
+  leadsList.forEach(l => { const z = zoneFromTag(l.veredicto); if (z) counts[z]++; });
+  document.getElementById('counts').innerHTML = leadsList.length
+    ? ['priority', 'qualify', 'review', 'discard'].map(z => `<span class="count" data-zone="${z}">${ZONES[z].tag}: ${counts[z]}</span>`).join('')
+    : '';
+  if (!leadsList.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-row">Todavía no hay leads guardados. Califica uno y pulsa “Guardar lead y crear informe en Drive”.</td></tr>';
+    return;
+  }
+  body.innerHTML = leadsList.map(l => {
+    const z = zoneFromTag(l.veredicto);
+    const link = l.informe ? `<a href="${esc(l.informe)}" target="_blank" rel="noopener">Abrir</a>` : 'Sin informe';
+    return `<tr><td>${esc(l.fecha)}${l.setter ? '<br><small>' + esc(l.setter) + '</small>' : ''}</td>
+      <td>${esc(l.nombre)}${l.cargo ? '<br><small>' + esc(l.cargo) + '</small>' : ''}</td><td>${esc(l.empresa)}</td>
+      <td class="num">${esc(l.nota)}</td><td><span class="pill" data-zone="${z}">${esc(l.veredicto)}</span></td><td>${link}</td></tr>`;
+  }).join('');
+}
+
+async function loadLeads() {
+  const body = document.getElementById('leadsBody');
+  const sub = document.getElementById('leadsSub');
+  const res = await api('listar-leads', { method: 'GET' });
+  if (!res.ok) {
+    body.innerHTML = `<tr><td colspan="6" class="empty-row">${res.status === 401
+      ? 'Escribe la clave de la herramienta en “Tu acceso” y pulsa Actualizar para ver los leads.'
+      : esc(res.error || 'No se pudo leer la base de leads.')}</td></tr>`;
+    return;
+  }
+  leadsList = res.leads || [];
+  if (res.sheetUrl) { const a = document.getElementById('sheetLink'); a.href = res.sheetUrl; a.hidden = false; }
+  sub.textContent = 'Cada lead guardado queda en la hoja de leads de Google Drive, con el enlace a su informe.';
+  renderLeads();
+}
+
+renderSegments();
+renderMethod();
+load();
+applyStateToForm();
+bind();
+render();
+loadAccess();
+['a_setter', 'a_pin'].forEach(id => document.getElementById(id).addEventListener('change', saveAccess));
+document.getElementById('btnSave').addEventListener('click', saveLead);
+document.getElementById('btnRefresh').addEventListener('click', () => { saveAccess(); loadLeads(); });
+document.getElementById('btnCopyMsg').addEventListener('click', async () => {
+  const ta = document.getElementById('iaMsg');
+  try { await navigator.clipboard.writeText(ta.value); document.getElementById('status').textContent = 'Mensaje copiado.'; }
+  catch (e) { ta.focus(); ta.select(); document.getElementById('status').textContent = 'Selecciona el mensaje y cópialo con Ctrl+C.'; }
+});
+loadLeads();
+</script>
+</body>
+</html>
